@@ -3,7 +3,7 @@
 Development phases for the MVP, in order. See `Captured_Wishes_Product_Vision.md` for the product spec and `CLAUDE.md` for architecture notes.
 
 - [x] **Phase 0 — Project scaffold.** Vite/Vue3/TS/Tailwind/router/Pinia, folder structure. No feature logic.
-- [ ] **Phase 1 — Content & data layer.** IndexedDB schema + `db.ts` + composable, shared types.
+- [x] **Phase 1 — Content & data layer.** IndexedDB schema + `db.ts`, Pinia stores backed by it.
 - [ ] **Phase 2 — Welcome & scrapbook shell UI.** Cover screen entrance animation, static Polaroid component, paper/tape textures, grid-size (3×3 / 5×5) choice screen.
 - [ ] **Phase 3 — Camera capture flow.** `useCamera` composable, live preview, shutter animation, file-input fallback, resize/compress, save to IndexedDB, Polaroid "developing" animation.
 - [ ] **Phase 4 — Puzzle engine.** Grid slicing (CSS background-position), shuffle (position + rotation), drag-to-move / tap-to-rotate interaction, snap animation, completion detection.
