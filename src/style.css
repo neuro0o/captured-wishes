@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #faf3e7;
+  --color-warm-white: #fffcf7;
+  --color-dusty-pink: #e8b9be;
+  --color-sage: #a9bfa0;
+  --color-lavender: #c6b8d9;
+  --color-sky: #aacbdd;
+  --color-soft-yellow: #edd8a0;
+  --color-ink: #4a3f35;
+
+  --font-heading: 'Patrick Hand', 'Caveat', 'Kalam', cursive;
+  --font-body: 'Inter', 'Nunito', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
