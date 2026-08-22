@@ -9,7 +9,7 @@ Development phases for the MVP, in order. See `Captured_Wishes_Product_Vision.md
 - [x] **Phase 4 — Puzzle engine.** Grid slicing (CSS background-position), shuffle (position + rotation), drag-to-move / tap-to-rotate interaction, completion detection.
 - [x] **Phase 5 — Hidden wish reveal.** Folded-note unfold animation, wish content wiring, unlocked-state persistence, next-memory navigation.
 - [x] **Phase 6 — Progression & resume logic.** Shared `getMemoryStep`/`getResumeRoute` utility, per-view guards against out-of-order visits, Welcome screen resumes instead of restarting.
-- [ ] **Phase 7 — Final scrapbook & celebration.** All Polaroids + notes arranged, confetti, replay/re-view navigation.
+- [x] **Phase 7 — Final scrapbook & celebration.** All Polaroids arranged, confetti (once per session), tap-to-revisit any memory's wish.
 - [ ] **Phase 8 — Polish pass.** Reduced-motion audit, responsive/tablet/desktop QA, touch target sizing, performance pass, sound toggle wiring.
 
 ## Post-MVP ideas

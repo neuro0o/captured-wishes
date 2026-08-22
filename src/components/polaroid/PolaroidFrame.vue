@@ -5,19 +5,22 @@ withDefaults(
     caption?: string
     rotation?: number
     developing?: boolean
+    widthClass?: string
   }>(),
   {
     imageUrl: null,
     caption: '',
     rotation: 0,
     developing: false,
+    widthClass: 'w-44',
   },
 )
 </script>
 
 <template>
   <div
-    class="inline-block w-44 rounded-sm bg-warm-white p-3 pb-8 shadow-[0_10px_25px_-8px_rgba(74,63,53,0.35)]"
+    class="inline-block rounded-sm bg-warm-white p-3 pb-8 shadow-[0_10px_25px_-8px_rgba(74,63,53,0.35)]"
+    :class="widthClass"
     :style="{ transform: `rotate(${rotation}deg)` }"
   >
     <div class="aspect-square w-full overflow-hidden bg-sky/30">

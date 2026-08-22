@@ -20,3 +20,9 @@ export const WISH_NOTES: WishNote[] = [
   { id: '3', lines: ['Thank you for always...'] },
   { id: '4', lines: ['My wish for your future...'] },
 ]
+
+// TODO: replace with your own closing message before deploying.
+export const SCRAPBOOK_CLOSING = {
+  heading: 'Happy Birthday ❤️',
+  signature: 'Love, Neuro',
+}
