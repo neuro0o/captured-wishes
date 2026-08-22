@@ -2,17 +2,25 @@ import { computed, ref } from 'vue'
 
 import type { GridSize } from '@/types/memory'
 
-export type PieceRotation = 0 | 90 | 180 | 270
-
 export interface PuzzlePieceState {
   /** Home cell index — also determines which image slice this piece shows. */
   id: number
   /** Current cell index in the grid. */
   currentIndex: number
-  rotation: PieceRotation
+  /**
+   * Total quarter-turns applied, unbounded (never wrapped back to 0).
+   * Wrapping this to 0-270 would make the CSS transform jump backwards
+   * on every 4th tap, since the browser interpolates the shortest numeric
+   * path between two `rotate()` values — an ever-increasing value keeps
+   * every transition spinning the same direction, so it feels endless.
+   * Use `rotationDegrees()` to get the normalized 0/90/180/270 value.
+   */
+  rotationSteps: number
 }
 
-const ROTATIONS: readonly PieceRotation[] = [0, 90, 180, 270]
+export function rotationDegrees(steps: number): number {
+  return (((steps % 4) + 4) % 4) * 90
+}
 
 function shuffled<T>(items: T[]): T[] {
   const result = [...items]
@@ -24,7 +32,9 @@ function shuffled<T>(items: T[]): T[] {
 }
 
 function isFullySolved(pieces: PuzzlePieceState[]): boolean {
-  return pieces.every((piece) => piece.currentIndex === piece.id && piece.rotation === 0)
+  return pieces.every(
+    (piece) => piece.currentIndex === piece.id && rotationDegrees(piece.rotationSteps) === 0,
+  )
 }
 
 function createShuffledPieces(cellCount: number): PuzzlePieceState[] {
@@ -32,7 +42,7 @@ function createShuffledPieces(cellCount: number): PuzzlePieceState[] {
   const pieces = Array.from({ length: cellCount }, (_, id) => ({
     id,
     currentIndex: positions[id],
-    rotation: ROTATIONS[Math.floor(Math.random() * ROTATIONS.length)],
+    rotationSteps: Math.floor(Math.random() * 4),
   }))
 
   if (isFullySolved(pieces) && pieces.length > 1) {
@@ -66,8 +76,7 @@ export function usePuzzle(gridSize: GridSize) {
   function rotate(pieceId: number) {
     const piece = pieces.value.find((entry) => entry.id === pieceId)
     if (!piece) return
-    const nextIndex = (ROTATIONS.indexOf(piece.rotation) + 1) % ROTATIONS.length
-    piece.rotation = ROTATIONS[nextIndex]
+    piece.rotationSteps += 1
   }
 
   return { pieces, piecesByPosition, isSolved, swap, rotate }

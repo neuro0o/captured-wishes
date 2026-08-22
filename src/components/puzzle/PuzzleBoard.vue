@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-import { usePuzzle, type PuzzlePieceState } from '@/composables/usePuzzle'
+import { rotationDegrees, usePuzzle, type PuzzlePieceState } from '@/composables/usePuzzle'
 import type { GridSize } from '@/types/memory'
 
 const props = defineProps<{
@@ -60,10 +60,11 @@ function isDraggingThis(piece: PuzzlePieceState) {
 
 function pieceTransform(piece: PuzzlePieceState) {
   const current = drag.value
+  const degrees = piece.rotationSteps * 90
   if (current && current.pieceId === piece.id && current.moved) {
-    return `translate(${current.dx}px, ${current.dy}px) rotate(${piece.rotation}deg)`
+    return `translate(${current.dx}px, ${current.dy}px) rotate(${degrees}deg)`
   }
-  return `rotate(${piece.rotation}deg)`
+  return `rotate(${degrees}deg)`
 }
 
 function onPointerDown(event: PointerEvent, piece: PuzzlePieceState) {
@@ -129,7 +130,7 @@ function onPointerUp(event: PointerEvent) {
       :style="cellStyle(piece.currentIndex)"
       :data-piece-id="piece.id"
       :data-current-index="piece.currentIndex"
-      :data-rotation="piece.rotation"
+      :data-rotation="rotationDegrees(piece.rotationSteps)"
       @pointerdown="onPointerDown($event, piece)"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
