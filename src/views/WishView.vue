@@ -8,6 +8,7 @@ import WishNote from '@/components/scrapbook/WishNote.vue'
 import { MEMORY_PROMPTS, WISH_NOTES } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import type { MemoryId } from '@/types/memory'
+import { getMemoryStep } from '@/utils/progress'
 
 const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
@@ -25,11 +26,12 @@ const revealed = ref(false)
 onMounted(async () => {
   await memoriesStore.load()
   const record = memoriesStore.records[memoryId.value]
-  if (!record?.puzzleSolved) {
-    router.replace({ name: 'puzzle', params: { id: memoryId.value } })
+  const step = getMemoryStep(record)
+  if (step === 'capture' || step === 'puzzle') {
+    router.replace({ name: step, params: { id: memoryId.value } })
     return
   }
-  revealed.value = record.wishUnlocked
+  revealed.value = record?.wishUnlocked ?? false
 })
 
 async function reveal() {

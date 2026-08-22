@@ -8,7 +8,7 @@ Development phases for the MVP, in order. See `Captured_Wishes_Product_Vision.md
 - [x] **Phase 3 — Camera capture flow.** `useCamera` composable, live preview, shutter + retake/confirm review, gallery fallback, EXIF-safe resize/compress, save to IndexedDB, Polaroid "developing" animation.
 - [x] **Phase 4 — Puzzle engine.** Grid slicing (CSS background-position), shuffle (position + rotation), drag-to-move / tap-to-rotate interaction, completion detection.
 - [x] **Phase 5 — Hidden wish reveal.** Folded-note unfold animation, wish content wiring, unlocked-state persistence, next-memory navigation.
-- [ ] **Phase 6 — Progression & resume logic.** Router/progress-store wiring so reloading mid-flow resumes at the right step across all 4 memories.
+- [x] **Phase 6 — Progression & resume logic.** Shared `getMemoryStep`/`getResumeRoute` utility, per-view guards against out-of-order visits, Welcome screen resumes instead of restarting.
 - [ ] **Phase 7 — Final scrapbook & celebration.** All Polaroids + notes arranged, confetti, replay/re-view navigation.
 - [ ] **Phase 8 — Polish pass.** Reduced-motion audit, responsive/tablet/desktop QA, touch target sizing, performance pass, sound toggle wiring.
 

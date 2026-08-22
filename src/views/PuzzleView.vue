@@ -9,6 +9,7 @@ import { MEMORY_PROMPTS } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import { useSettingsStore } from '@/stores/settings'
 import type { MemoryId } from '@/types/memory'
+import { getMemoryStep } from '@/utils/progress'
 
 const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
@@ -24,12 +25,20 @@ const photoBlob = computed(() => memoriesStore.records[memoryId.value]?.photoBlo
 const photoUrl = useObjectUrl(photoBlob)
 
 const justSolved = ref(false)
+const ready = ref(false)
 
 onMounted(async () => {
   await memoriesStore.load()
-  if (!memoriesStore.records[memoryId.value]?.photoBlob) {
+  const step = getMemoryStep(memoriesStore.records[memoryId.value])
+  if (step === 'capture') {
     router.replace({ name: 'capture', params: { id: memoryId.value } })
+    return
   }
+  if (step === 'wish' || step === 'done') {
+    router.replace({ name: 'wish', params: { id: memoryId.value } })
+    return
+  }
+  ready.value = true
 })
 
 async function handleSolved() {
@@ -57,7 +66,12 @@ async function handleSolved() {
       </template>
 
       <div class="flex justify-center">
-        <PuzzleBoard v-if="photoUrl" :image-url="photoUrl" :grid-size="gridSize" @solved="handleSolved" />
+        <PuzzleBoard
+          v-if="ready && photoUrl"
+          :image-url="photoUrl"
+          :grid-size="gridSize"
+          @solved="handleSolved"
+        />
       </div>
 
       <p v-if="justSolved" class="mt-6 font-heading text-xl text-ink">You found it! ✨</p>
