@@ -4,11 +4,13 @@ withDefaults(
     imageUrl?: string | null
     caption?: string
     rotation?: number
+    developing?: boolean
   }>(),
   {
     imageUrl: null,
     caption: '',
     rotation: 0,
+    developing: false,
   },
 )
 </script>
@@ -19,7 +21,17 @@ withDefaults(
     :style="{ transform: `rotate(${rotation}deg)` }"
   >
     <div class="aspect-square w-full overflow-hidden bg-sky/30">
-      <img v-if="imageUrl" :src="imageUrl" alt="" class="h-full w-full object-cover" />
+      <img
+        v-if="imageUrl"
+        :src="imageUrl"
+        alt=""
+        class="h-full w-full object-cover transition-all duration-1800 ease-out"
+        :class="
+          developing
+            ? 'scale-110 opacity-40 blur-md brightness-125 saturate-50'
+            : 'scale-100 opacity-100 blur-none brightness-100 saturate-100'
+        "
+      />
     </div>
     <p v-if="caption" class="mt-3 text-center font-heading text-lg text-ink">{{ caption }}</p>
   </div>

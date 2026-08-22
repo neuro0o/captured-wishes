@@ -25,3 +25,11 @@ All notable development milestones for Captured Wishes. Format loosely follows [
 - Added decorative washi tape and corner Polaroid flourishes to the Welcome screen.
 - Verified in a real headless-browser render (Playwright/Chromium): fixed a stacking-context bug where `-z-10` on the decorative Polaroids pushed them behind the page's own background (negative z-index escapes a `position: relative` ancestor that never set its own `z-index`, landing in the root stacking context instead) — removed the z-index and rely on DOM order instead.
 - Reworked the Welcome layout after spotting page-level horizontal/vertical scrollbars on a wide viewport: the full-bleed corner Polaroids were expanding the document's scrollable area. Content now lives inside a bounded, `overflow-hidden` "page" panel (`max-w-xl`, rounded, shadowed) centered on the cream background, so the bleed decorations clip against the panel instead of the viewport — also fixes the sparse/empty-looking layout on wide desktop windows.
+
+### Phase 3 — Camera capture flow
+- Added `useCamera` (`src/composables/`): wraps `getUserMedia`, exposes `videoRef`/`isReady`/`error`/`facingMode`, and a `flip()` for front/rear switching and `capture()` that draws the current video frame to an off-screen canvas and returns a `Blob`.
+- Added `useReducedMotion` (`src/composables/`), a thin wrapper over VueUse's `usePreferredReducedMotion`.
+- Added `processPhotoBlob` (`src/utils/image.ts`): normalizes EXIF orientation via `createImageBitmap(..., { imageOrientation: 'from-image' })`, downsizes to a 1024px max edge, and re-encodes as WebP before it ever reaches IndexedDB.
+- `PolaroidFrame` gained a `developing` prop driving the blur/desaturate → clear CSS transition.
+- `CaptureView` now runs the real flow: live camera preview → shutter → review (retake/confirm) → save to `memoriesStore` → Polaroid developing animation → auto-advance to `/puzzle/:id`. Falls back to a plain gallery/file picker (no `capture` attribute, so the OS offers both camera and gallery) when `getUserMedia` is unsupported or permission is denied.
+- Verified with Playwright/Chromium end-to-end, including with `--use-fake-device-for-media-stream` for the live-camera path and a real image file for the fallback path: both correctly write a processed WebP blob into the `memories` IndexedDB store and navigate to the puzzle route.
