@@ -30,7 +30,7 @@ function emptyMemoryRecord(id: MemoryId): MemoryRecord {
   return { id, photoBlob: null, capturedAt: null, puzzleSolved: false, wishUnlocked: false }
 }
 
-/** Loads all 4 memory records, seeding any that don't exist yet. */
+/** Loads all memory records, seeding any that don't exist yet. */
 export async function loadAllMemories(): Promise<MemoryRecord[]> {
   const db = await getDB()
   const tx = db.transaction('memories', 'readwrite')
@@ -60,4 +60,9 @@ export async function loadSettings(): Promise<SettingsRecord> {
 export async function saveSettings(record: SettingsRecord): Promise<void> {
   const db = await getDB()
   await db.put('settings', record)
+}
+
+export async function clearAllMemories(): Promise<void> {
+  const db = await getDB()
+  await db.clear('memories')
 }

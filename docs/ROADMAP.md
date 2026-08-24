@@ -10,18 +10,20 @@ Development phases for the MVP, in order. See `Captured_Wishes_Product_Vision.md
 - [x] **Phase 5 — Hidden wish reveal.** Folded-note unfold animation, wish content wiring, unlocked-state persistence, next-memory navigation.
 - [x] **Phase 6 — Progression & resume logic.** Shared `getMemoryStep`/`getResumeRoute` utility, per-view guards against out-of-order visits, Welcome screen resumes instead of restarting.
 - [x] **Phase 7 — Final scrapbook & celebration.** All Polaroids arranged, confetti (once per session), tap-to-revisit any memory's wish.
+- [x] **Phase 7.5 — Recipient-requested revisions** (from `ToDo.md`). 4 memories → 3; flow restructured from interleaved (capture→puzzle→wish per memory) to two-phase (capture all 3, then solve puzzles/reveal wishes one at a time in order); in-app "Start fresh" reset (no DevTools needed). Along the way, fixed a real Vue Router bug where `/capture/1` → `/capture/2` reused the same component instance and left camera/photo state stuck from the previous memory (see `ARCHITECTURE.md` §5).
 - [ ] **Phase 8 — Polish pass.** Reduced-motion audit, responsive/tablet/desktop QA, touch target sizing, performance pass, sound toggle wiring.
+- [ ] **PDF export.** Next up per `ToDo.md` — a keepsake export of the final scrapbook page.
+- [ ] **SFX + background music.** Blocked on audio assets (recipient/user is sourcing clips); `settingsStore.soundEnabled` and the toggle plumbing already exist, nothing plays yet.
 
 ## Post-MVP ideas
 
-Not scoped for the initial build — from the product doc's "Future Ideas":
+Not scoped for the initial build — from the product doc's "Future Ideas" plus `ToDo.md`:
 
 - True jigsaw-shaped pieces
-- Background music
 - Scrapbook customization / difficulty presets beyond 3×3 vs 5×5
-- PDF/image export
 - Secret ending
 - Collectible stickers
 - Replay-from-scratch mode
 - Memory timeline
 - PWA installability
+- Video (MP4) export — significantly harder client-side (would need `MediaRecorder` capturing canvas/DOM + audio); deprioritized behind PDF export

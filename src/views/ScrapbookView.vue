@@ -15,7 +15,7 @@ const router = useRouter()
 const memoriesStore = useMemoriesStore()
 const reducedMotion = useReducedMotion()
 
-const CARD_ROTATIONS = [-6, 4, -5, 3]
+const CARD_ROTATIONS = [-6, 4, -5]
 
 const photoUrls = new Map(
   MEMORY_PROMPTS.map((prompt) => [
@@ -68,7 +68,7 @@ function viewWish(id: MemoryId) {
       <p class="text-sm tracking-[0.3em] text-ink/60 uppercase">Every wish, unlocked</p>
       <h1 class="mb-8 text-5xl text-ink">Captured Wishes</h1>
 
-      <div class="mb-10 grid grid-cols-2 justify-items-center gap-x-4 gap-y-6">
+      <div class="mb-10 flex flex-wrap justify-center gap-x-4 gap-y-6">
         <button
           v-for="card in memoryCards"
           :key="card.id"

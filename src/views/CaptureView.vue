@@ -10,7 +10,7 @@ import { MEMORY_PROMPTS } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import type { MemoryId } from '@/types/memory'
 import { processPhotoBlob } from '@/utils/image'
-import { getMemoryStep } from '@/utils/progress'
+import { getResumeRoute } from '@/utils/progress'
 
 const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
@@ -34,13 +34,9 @@ const isDeveloped = ref(false)
 
 onMounted(async () => {
   await memoriesStore.load()
-  const step = getMemoryStep(memoriesStore.records[memoryId.value])
-  if (step === 'puzzle') {
-    router.replace({ name: 'puzzle', params: { id: memoryId.value } })
-    return
-  }
-  if (step === 'wish' || step === 'done') {
-    router.replace({ name: 'wish', params: { id: memoryId.value } })
+  const target = getResumeRoute(memoriesStore.records)
+  if (target.name !== 'capture' || target.params.id !== memoryId.value) {
+    router.replace(target)
     return
   }
   start()
@@ -83,7 +79,7 @@ async function confirmPhoto() {
   )
   window.setTimeout(
     () => {
-      router.push({ name: 'puzzle', params: { id: memoryId.value } })
+      router.push(getResumeRoute(memoriesStore.records))
     },
     reducedMotion.value ? 300 : 2200,
   )

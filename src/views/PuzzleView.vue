@@ -9,7 +9,7 @@ import { MEMORY_PROMPTS } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import { useSettingsStore } from '@/stores/settings'
 import type { MemoryId } from '@/types/memory'
-import { getMemoryStep } from '@/utils/progress'
+import { getResumeRoute } from '@/utils/progress'
 
 const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
@@ -29,13 +29,9 @@ const ready = ref(false)
 
 onMounted(async () => {
   await memoriesStore.load()
-  const step = getMemoryStep(memoriesStore.records[memoryId.value])
-  if (step === 'capture') {
-    router.replace({ name: 'capture', params: { id: memoryId.value } })
-    return
-  }
-  if (step === 'wish' || step === 'done') {
-    router.replace({ name: 'wish', params: { id: memoryId.value } })
+  const target = getResumeRoute(memoriesStore.records)
+  if (target.name !== 'puzzle' || target.params.id !== memoryId.value) {
+    router.replace(target)
     return
   }
   ready.value = true

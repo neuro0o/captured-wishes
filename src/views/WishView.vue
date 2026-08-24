@@ -8,7 +8,7 @@ import WishNote from '@/components/scrapbook/WishNote.vue'
 import { MEMORY_PROMPTS, WISH_NOTES } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import type { MemoryId } from '@/types/memory'
-import { getMemoryStep } from '@/utils/progress'
+import { getMemoryStep, getResumeRoute } from '@/utils/progress'
 
 const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
@@ -28,7 +28,7 @@ onMounted(async () => {
   const record = memoriesStore.records[memoryId.value]
   const step = getMemoryStep(record)
   if (step === 'capture' || step === 'puzzle') {
-    router.replace({ name: step, params: { id: memoryId.value } })
+    router.replace(getResumeRoute(memoriesStore.records))
     return
   }
   revealed.value = record?.wishUnlocked ?? false
@@ -40,17 +40,10 @@ async function reveal() {
   await memoriesStore.markWishUnlocked(memoryId.value)
 }
 
-const nextMemoryId = computed<MemoryId | null>(() => {
-  const currentPos = MEMORY_PROMPTS.findIndex((entry) => entry.id === memoryId.value)
-  return MEMORY_PROMPTS[currentPos + 1]?.id ?? null
-})
+const nextTarget = computed(() => getResumeRoute(memoriesStore.records))
 
 function goNext() {
-  if (nextMemoryId.value) {
-    router.push({ name: 'capture', params: { id: nextMemoryId.value } })
-  } else {
-    router.push({ name: 'scrapbook' })
-  }
+  router.push(nextTarget.value)
 }
 </script>
 
@@ -86,7 +79,7 @@ function goNext() {
           class="rounded-full bg-dusty-pink px-8 py-3 font-heading text-xl text-ink shadow-sm transition hover:brightness-95"
           @click="goNext"
         >
-          {{ nextMemoryId ? 'Next memory' : 'See the scrapbook' }}
+          {{ nextTarget.name === 'scrapbook' ? 'See the scrapbook' : 'Next puzzle' }}
         </button>
       </div>
     </div>

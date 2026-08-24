@@ -27,6 +27,15 @@ function begin() {
   if (!settingsStore.gridSize) return
   router.push(getResumeRoute(memoriesStore.records))
 }
+
+async function startFresh() {
+  const confirmed = window.confirm(
+    'This erases every captured photo and all progress on this device. Start over?',
+  )
+  if (!confirmed) return
+  await memoriesStore.reset()
+  await settingsStore.resetGridSize()
+}
 </script>
 
 <template>
@@ -69,6 +78,15 @@ function begin() {
           @click="begin"
         >
           {{ hasProgress ? 'Continue' : 'Open the scrapbook' }}
+        </button>
+
+        <button
+          v-if="hasProgress"
+          type="button"
+          class="text-xs text-ink/40 underline underline-offset-4 transition hover:text-ink/60"
+          @click="startFresh"
+        >
+          Start fresh (erases photos &amp; progress)
         </button>
       </div>
     </div>

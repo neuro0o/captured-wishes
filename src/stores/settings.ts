@@ -24,5 +24,10 @@ export const useSettingsStore = defineStore('settings', {
       this.soundEnabled = !this.soundEnabled
       await saveSettings({ key: 'app', gridSize: this.gridSize, soundEnabled: this.soundEnabled })
     },
+    /** Clears the grid-size choice so it's asked again; leaves the sound preference alone. */
+    async resetGridSize() {
+      this.gridSize = null
+      await saveSettings({ key: 'app', gridSize: null, soundEnabled: this.soundEnabled })
+    },
   },
 })

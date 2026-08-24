@@ -1,4 +1,4 @@
-export type MemoryId = '1' | '2' | '3' | '4'
+export type MemoryId = '1' | '2' | '3'
 
 export type GridSize = 3 | 5
 
