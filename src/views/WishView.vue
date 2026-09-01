@@ -5,6 +5,12 @@ import { useRouter } from 'vue-router'
 
 import PolaroidFrame from '@/components/polaroid/PolaroidFrame.vue'
 import WishNote from '@/components/scrapbook/WishNote.vue'
+import CraftScreen from '@/components/ui/CraftScreen.vue'
+import Doodle from '@/components/ui/Doodle.vue'
+import MarkerText from '@/components/ui/MarkerText.vue'
+import PhotoCorners from '@/components/ui/PhotoCorners.vue'
+import StickerButton from '@/components/ui/StickerButton.vue'
+import WashiTape from '@/components/ui/WashiTape.vue'
 import { MEMORY_PROMPTS, WISH_NOTES } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import type { MemoryId } from '@/types/memory'
@@ -14,6 +20,7 @@ const props = defineProps<{ id: string }>()
 const memoryId = computed(() => props.id as MemoryId)
 const prompt = computed(() => MEMORY_PROMPTS.find((entry) => entry.id === memoryId.value))
 const wish = computed(() => WISH_NOTES.find((entry) => entry.id === memoryId.value))
+const noteIndex = computed(() => Number(memoryId.value))
 
 const router = useRouter()
 const memoriesStore = useMemoriesStore()
@@ -48,40 +55,67 @@ function goNext() {
 </script>
 
 <template>
-  <main class="flex min-h-screen items-center justify-center px-4 py-10">
-    <div
-      class="relative w-full max-w-xl overflow-hidden rounded-4xl bg-warm-white px-6 py-10 text-center shadow-[0_20px_45px_-20px_rgba(74,63,53,0.25)]"
-    >
-      <template v-if="prompt">
-        <p class="mb-1 text-4xl">{{ prompt.emoji }}</p>
-        <h1 class="mb-6 text-3xl text-ink">Memory restored</h1>
-      </template>
+  <CraftScreen tint="pink">
+    <div class="flex flex-1 flex-col items-center gap-5 pt-16 pb-10">
+      <MarkerText v-if="prompt" as="h1" color="soft-yellow" class="-rotate-2 text-3xl">
+        Memory restored
+      </MarkerText>
 
-      <div class="flex flex-col items-center gap-6">
+      <div class="relative mt-6">
+        <template v-if="!revealed">
+          <div class="absolute -bottom-4 left-1/2 h-14 w-52 -translate-x-1/2 rotate-3 rounded-[3px] border border-ink/20 bg-[#fffdf5] shadow-[0_10px_18px_-10px_rgba(74,63,53,0.4)]"></div>
+          <div class="absolute -bottom-2 left-1/2 h-12 w-56 -translate-x-1/2 -rotate-2 rounded-[3px] border border-ink/15 bg-[#fffdf5]"></div>
+        </template>
+
         <button
           type="button"
-          class="cursor-pointer touch-manipulation border-0 bg-transparent p-0 transition"
-          :class="revealed ? '' : 'active:scale-95'"
+          class="relative z-10 border-0 bg-transparent p-0 transition"
+          :class="revealed ? '' : 'cursor-pointer touch-manipulation active:scale-95'"
           @click="reveal"
         >
-          <PolaroidFrame :image-url="photoUrl" />
+          <PolaroidFrame
+            :image-url="photoUrl"
+            :width-class="revealed ? 'w-32' : 'w-64'"
+            :rotation="-4"
+            :caption="revealed ? '' : 'something’s behind here…'"
+          >
+            <WashiTape color="dusty-pink" :rotation="-6" :length="revealed ? 66 : 120" class="absolute -top-3 left-1/2 -translate-x-1/2" />
+            <PhotoCorners v-if="!revealed" :corners="['tl']" :size="16" />
+          </PolaroidFrame>
         </button>
 
-        <p v-if="!revealed" class="text-sm text-ink/60">
-          Tap the photo to find what's tucked behind it
-        </p>
+        <Doodle name="star" class="absolute -top-4 right-6 rotate-12 text-ink" width="18" height="18" />
+      </div>
 
-        <WishNote v-if="wish" :lines="wish.lines" :open="revealed" />
+      <template v-if="!revealed">
+        <div class="mt-4 flex items-center gap-3">
+          <Doodle name="tap" class="text-ink" width="34" height="34" />
+          <p class="rotate-[1.5deg] border border-dashed border-ink/30 bg-warm-white px-3.5 py-2 text-[10.5px] text-ink/70 shadow-craft-soft">
+            Tap the photo to find what's tucked behind it
+          </p>
+        </div>
+        <Doodle name="arrow-down" class="rotate-180 text-ink/50" width="30" height="42" />
+      </template>
 
-        <button
-          v-if="revealed"
-          type="button"
-          class="rounded-full bg-dusty-pink px-8 py-3 font-heading text-xl text-ink shadow-sm transition hover:brightness-95"
-          @click="goNext"
-        >
-          {{ nextTarget.name === 'scrapbook' ? 'See the scrapbook' : 'Next puzzle' }}
-        </button>
+      <WishNote
+        v-if="wish"
+        :lines="wish.lines"
+        :title="wish.title"
+        :note-index="noteIndex"
+        :open="revealed"
+      />
+
+      <div v-if="revealed" class="relative mt-2">
+        <Doodle
+          name="burst"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-dusty-pink/50"
+          width="150"
+          height="150"
+        />
+        <StickerButton variant="primary" tone="dusty-pink" size="md" class="relative -rotate-2" @click="goNext">
+          {{ nextTarget.name === 'scrapbook' ? 'See the scrapbook' : 'Next puzzle →' }}
+        </StickerButton>
       </div>
     </div>
-  </main>
+  </CraftScreen>
 </template>

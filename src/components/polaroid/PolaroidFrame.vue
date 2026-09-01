@@ -19,11 +19,14 @@ withDefaults(
 
 <template>
   <div
-    class="inline-block rounded-sm bg-warm-white p-3 pb-8 shadow-[0_10px_25px_-8px_rgba(74,63,53,0.35)]"
+    class="relative inline-block rounded-[3px] bg-warm-white p-3 pb-9 shadow-[0_16px_30px_-14px_rgba(74,63,53,0.55)]"
     :class="widthClass"
     :style="{ transform: `rotate(${rotation}deg)` }"
   >
-    <div class="aspect-square w-full overflow-hidden bg-sky/30">
+    <!-- decoration slot: tape, pin, photo corners placed by the parent -->
+    <slot />
+
+    <div class="aspect-square w-full overflow-hidden rounded-xs bg-sky/30">
       <img
         v-if="imageUrl"
         :src="imageUrl"
@@ -36,6 +39,6 @@ withDefaults(
         "
       />
     </div>
-    <p v-if="caption" class="mt-3 text-center font-heading text-lg text-ink">{{ caption }}</p>
+    <p v-if="caption" class="mt-2 text-center font-hand text-lg text-ink/70">{{ caption }}</p>
   </div>
 </template>

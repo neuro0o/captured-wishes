@@ -114,7 +114,8 @@ function onPointerUp(event: PointerEvent) {
 <template>
   <div
     ref="boardRef"
-    class="relative aspect-square w-full max-w-sm touch-none select-none overflow-hidden rounded-2xl bg-ink/5"
+    class="relative aspect-square w-full max-w-sm touch-none rounded-md bg-cream transition-shadow duration-500 select-none"
+    :class="isSolved ? 'shadow-[0_0_0_3px_rgba(237,216,160,0.9),0_18px_34px_-16px_rgba(74,63,53,0.5)] overflow-visible' : 'overflow-hidden'"
     :data-solved="isSolved"
   >
     <div
@@ -137,9 +138,11 @@ function onPointerUp(event: PointerEvent) {
       @pointercancel="onPointerUp"
     >
       <div
-        class="h-full w-full transition-all duration-300"
+        class="h-full w-full bg-cover transition-all duration-300"
         :class="
-          isSolved ? 'rounded-none border-0 shadow-none' : 'rounded-sm border border-warm-white/70 shadow-sm'
+          isSolved
+            ? 'rounded-none border-0 shadow-none'
+            : 'rounded-xs border-2 border-warm-white shadow-[0_3px_7px_rgba(74,63,53,0.28)]'
         "
         :style="{ ...backgroundStyle(piece), transform: pieceTransform(piece) }"
       />

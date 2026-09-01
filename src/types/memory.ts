@@ -10,5 +10,8 @@ export interface MemoryPrompt {
 
 export interface WishNote {
   id: MemoryId
+  /** Section title from the handwritten letter (e.g. "The Little Things"). */
+  title: string
+  /** Body paragraphs, rendered one <p> per entry. */
   lines: string[]
 }
