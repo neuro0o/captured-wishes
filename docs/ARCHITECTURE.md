@@ -6,7 +6,7 @@ A reading guide to how Captured Wishes actually works — the concept, the stack
 
 ## 1. What this is
 
-Captured Wishes is a **personalized, one-off birthday gift**, not a general product. On the recipient's birthday, they open a link on their phone and capture 3 photos back to back, guided by prompts ("Let's start with a smile," "Capture today's cake," "Photograph something special"). Once all 3 are captured, each becomes a Polaroid puzzle to solve, one at a time; solving each reveals a hand-written note. After all 3 are done, everything comes together on a final scrapbook page with confetti.
+Captured Wishes is a **personalized, one-off birthday gift**, not a general product. On the recipient's birthday, they open a link on their phone and capture 3 photos back to back, guided by prompts ("Start with something that makes you smile," "Capture something you're grateful for," "Photograph something you're looking forward to"). Once all 3 are captured, each becomes a Polaroid puzzle to solve, one at a time; solving each reveals a hand-written note. After all 3 are done, everything comes together on a final scrapbook page with confetti, and the recipient can export the whole thing as a keepsake PDF.
 
 The whole thing is **100% client-side** — no backend, no accounts, no server, no cloud storage. It's built to ship as a static site on GitHub Pages. Photos and progress live only in the recipient's own browser, via IndexedDB.
 
@@ -39,14 +39,16 @@ src/
   components/
     polaroid/          PolaroidFrame.vue — the reusable Polaroid frame + "developing" transition
     puzzle/             PuzzleBoard.vue — the interactive puzzle grid
-    scrapbook/          WishNote.vue — the folded/unfolding note
-    ui/                 GridSizeToggle.vue, WashiTape.vue — small shared bits
-  composables/         useCamera.ts, usePuzzle.ts, useReducedMotion.ts — reusable browser/game logic
+    scrapbook/          WishNote.vue — the unfolding note; ScrapbookExport.vue — hidden print sheet for the PDF
+    ui/                 the Craft Table design-system primitives — CraftScreen (per-screen wrapper),
+                        StickerButton, MarkerText, Doodle, PhotoCorners, ProgressFilmstrip,
+                        ConfettiBits, PromptIcon, WashiTape, GridSizeToggle, SoundToggle
+  composables/         useCamera.ts, usePuzzle.ts, useReducedMotion.ts, useScrapbookPdf.ts
   content/             memories.config.ts — ALL hand-edited personal content lives here
   db/                  schema.ts (types), db.ts (the idb wrapper + CRUD functions)
   router/              index.ts — the 5 routes, hash history
   stores/              memories.ts, settings.ts — Pinia stores backed by db.ts
-  types/               memory.ts — shared TS types (MemoryId, GridSize, etc.)
+  types/               memory.ts — shared TS types (MemoryId, GridSize, WishNote, ExportMemory)
   utils/               image.ts (photo processing), progress.ts (resume logic)
   views/               WelcomeView, CaptureView, PuzzleView, WishView, ScrapbookView — one per route
   App.vue              root shell; loads both stores on mount; keys router-view by full path
@@ -138,7 +140,7 @@ A small state machine: `camera → review → developing`.
 Shows the solved Polaroid; tapping it calls `markWishUnlocked` and unfolds a `WishNote` with that memory's text from `WISH_NOTES`. A "Next puzzle" / "See the scrapbook" button appears once revealed, navigating via `getResumeRoute(...)` — to the next memory's puzzle, or to the scrapbook once all three are done.
 
 ### Scrapbook (`ScrapbookView.vue`)
-Guarded to only render once all memories are `done` (see §8). Shows all captured photos as a centered, wrapping row of Polaroids (each independently backed by its own `useObjectUrl`), fires a `canvas-confetti` burst once per app session, and shows the closing message from `SCRAPBOOK_CLOSING`. Tapping any photo jumps back to that memory's (already-unlocked) `/wish/:id` to reread it.
+Guarded to only render once all memories are `done` (see §8). Shows all captured photos as a centered, wrapping row of Polaroids (each independently backed by its own `useObjectUrl`), fires a `canvas-confetti` burst once per app session, and shows the closing message from `SCRAPBOOK_CLOSING`. Tapping any photo jumps back to that memory's (already-unlocked) `/wish/:id` to reread it. A "Save as keepsake" button exports the whole thing as a PDF (see §12).
 
 ---
 
@@ -203,19 +205,35 @@ Every view's `onMounted` guards itself against being visited "out of order" — 
 
 ---
 
-## 10. Visual design system
+## 10. Visual design system — "Craft Table"
 
-Palette and fonts are declared as Tailwind v4 theme tokens in an `@theme` block at the top of `src/style.css` (there's no `tailwind.config.js` — v4's Vite plugin reads this directly):
+The look is a maximalist handmade scrapbook: tinted craft paper, washi tape, hand-drawn doodles, sticker buttons, hard-offset shadows. Palette, fonts and shadows are Tailwind v4 theme tokens in an `@theme` block at the top of `src/style.css` (there's no `tailwind.config.js` — v4's Vite plugin reads this block directly):
 
-- **Colors** (deliberately soft/pastel, nothing saturated): `cream`, `warm-white`, `dusty-pink`, `sage`, `lavender`, `sky`, `soft-yellow`, `ink`.
-- **Fonts**: `font-heading` (Patrick Hand/Caveat/Kalam — handwritten feel) for headings, `font-body` (Inter/Nunito) for everything else, both loaded via Google Fonts `<link>` tags in `index.html`.
+- **Colours** (deliberately soft/pastel, nothing saturated): base `cream`, `warm-white`, `dusty-pink`, `sage`, `lavender`, `sky`, `soft-yellow`, `ink`; plus near-white per-screen paper tints `paper-cream|yellow|sky|pink|lavender|sage` and a `desk` colour for the surface behind the page on wide screens.
+- **Shadows**: `shadow-craft` / `-sm` / `-lg` are hard-offset ink shadows (e.g. `6px 6px 0 #4a3f35`) — the "cut paper" look on buttons, badges and framed photos; `shadow-craft-soft` is a softer variant for small chrome.
+- **Fonts**: `font-heading` (Patrick Hand / Caveat / Kalam) for headings, `font-hand` (Caveat) for handwritten accents and the wish letters, `font-body` (Inter / Nunito) for everything else — all loaded via Google Fonts `<link>` tags in `index.html`.
+- **Textures / effects** (utility classes, also in `style.css`): `paper-dots` (dot grid), `paper-ruled` (faint notebook rules), `torn-bottom` (jagged clip-path for banners), `marker-swipe` (the highlighter block behind a heading, drawn by `MarkerText`).
 
-Most views share one layout pattern: a centered, `max-w-xl`, `rounded-4xl`, `overflow-hidden` "page" panel on a `cream` background — this reads as an actual page of a scrapbook lying on a desk, and (not incidentally) the `overflow-hidden` boundary is what keeps decorative bleed elements (corner Polaroids, confetti) from expanding the document's scrollable area on wide viewports — an actual bug caught and fixed on the Welcome screen early on.
+**`CraftScreen` is the layout primitive.** Every view wraps its content in `<CraftScreen tint="…">`, which renders: on mobile, a full-bleed tinted-paper screen with the dot/rule textures, four washi-tape strips along the edges, and a persistent `SoundToggle` top-right. On `sm`+ the same thing becomes a **bounded "page" panel** (`max-w-md`, rounded, drop-shadowed) centred on a `desk-surface` background — reading as an actual scrapbook page lying on a desk instead of a phone-width column stranded in empty space. The panel is `overflow-hidden`, which also keeps decorative bleed (washi ends, banner corners, confetti) from expanding the document's scrollable area. Views add `sm:justify-center` so short screens centre vertically on the page.
 
-**Reduced motion**: `style.css` carries a global `prefers-reduced-motion` CSS kill-switch that zeroes out all CSS transition/animation durations site-wide. JS-driven effects that aren't pure CSS (the confetti burst, the `setTimeout` delays gating auto-navigation after the developing/solved animations) additionally check `useReducedMotion()` explicitly, since the CSS rule alone doesn't reach them.
+The `components/ui/` primitives compose on top: `StickerButton` (chunky ink-bordered button), `MarkerText` (highlighter-swipe heading), `Doodle` (the SVG doodle set by `name`), `PhotoCorners` / `WashiTape` / `PromptIcon` (Polaroid decoration + the drawn smile/letter/sprout icons that replace the emoji prompts), `ProgressFilmstrip` ("memory N of 3"), `ConfettiBits` (static paper scatter — the animated burst is still `canvas-confetti`), `GridSizeToggle`.
+
+**Reduced motion**: `style.css` carries a global `prefers-reduced-motion` CSS kill-switch that zeroes out all CSS transition/animation durations site-wide. JS-driven effects that aren't pure CSS (the confetti burst, the `setTimeout` delays gating auto-navigation after the developing/solved animations) additionally check `useReducedMotion()` explicitly, since the CSS rule alone doesn't reach them. *A full audit of the redesigned views against this is still pending (Phase 8).*
 
 ---
 
 ## 11. What's not built yet
 
-See [`ROADMAP.md`](./ROADMAP.md) for the full phase list. In short: **Phase 8 (polish)** is the only remaining phase — a reduced-motion audit across every view, responsive/tablet QA, touch-target sizing, a performance pass, and actually wiring up the sound toggle (the `soundEnabled` state exists in `settingsStore` but nothing plays audio yet). Everything from "PWA install" through "true jigsaw shapes" is explicitly out of scope for the MVP (see the Product Vision doc's "Future Ideas").
+See [`ROADMAP.md`](./ROADMAP.md) for the full list. In short: **Phase 8 (polish)** — a reduced-motion audit across the redesigned views, tablet/landscape/short-viewport QA, touch-target sizing on the smaller secondary controls, and a performance pass. The sound toggle is wired (`SoundToggle` → `settingsStore.soundEnabled`) but nothing plays audio yet — **SFX / background music** is blocked on audio assets the user is sourcing. Everything from "PWA install" through "true jigsaw shapes" is explicitly out of scope for the MVP (see the Product Vision doc's "Future Ideas").
+
+---
+
+## 12. PDF keepsake export
+
+`ScrapbookView`'s "Save as keepsake" button (`useScrapbookPdf` composable) produces a 4-page A4 PDF: a cover (title, the three photos with washi tape + captions, closing message) and one page per memory with its photo as a Polaroid and the full handwritten wish letter (font size auto-scaled down for longer letters so each fits one page).
+
+- **`ScrapbookExport.vue`** is a hidden, print-styled sheet — one `.export-page` div (794×1123, A4 at 96dpi) per PDF page — rendered off-screen (`position: fixed; left: -10000px`) inside `ScrapbookView`.
+- **`useScrapbookPdf.ts`** rasterises each `.export-page` with `html-to-image` (`toJpeg`, ~150dpi) and assembles the images into a PDF with `jspdf`. Both libraries — and jspdf's transitive `html2canvas` / `dompurify` — are `import()`-ed inside the export call, so they stay out of the initial bundle entirely.
+- **Fonts**: `html-to-image` renders into an SVG `<foreignObject>` drawn onto a canvas, where external font URLs never load and the browser's own font cache can't be read cross-origin. So the composable fetches the Google Fonts CSS itself, re-fetches each `woff2`, and rewrites the CSS with `base64` `data:` URIs before handing it to `toJpeg` as `fontEmbedCSS`. Without this the handwriting renders as a system fallback (and the wider fallback metrics cause text overlap).
+- **Photos** are converted to `data:` URLs (via `FileReader`) before the sheet renders — blob URLs failed to load inside html-to-image's cloned render.
+- Output is JPEG-per-page, ~450 KB for a typical set. `jspdf`'s `save()` triggers a normal browser download — fine on the real static site (this isn't sandboxed like a preview).

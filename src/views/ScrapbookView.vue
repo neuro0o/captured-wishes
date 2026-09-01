@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
 import confetti from 'canvas-confetti'
-import { computed, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import PolaroidFrame from '@/components/polaroid/PolaroidFrame.vue'
+import ScrapbookExport from '@/components/scrapbook/ScrapbookExport.vue'
 import ConfettiBits from '@/components/ui/ConfettiBits.vue'
 import CraftScreen from '@/components/ui/CraftScreen.vue'
 import Doodle from '@/components/ui/Doodle.vue'
 import MarkerText from '@/components/ui/MarkerText.vue'
 import PhotoCorners from '@/components/ui/PhotoCorners.vue'
 import PromptIcon from '@/components/ui/PromptIcon.vue'
+import StickerButton from '@/components/ui/StickerButton.vue'
 import WashiTape from '@/components/ui/WashiTape.vue'
 import { useReducedMotion } from '@/composables/useReducedMotion'
-import { MEMORY_PROMPTS, SCRAPBOOK_CLOSING } from '@/content/memories.config'
+import { useScrapbookPdf } from '@/composables/useScrapbookPdf'
+import { MEMORY_PROMPTS, SCRAPBOOK_CLOSING, WISH_NOTES } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
-import type { MemoryId } from '@/types/memory'
+import type { ExportMemory, MemoryId } from '@/types/memory'
 import { getResumeRoute } from '@/utils/progress'
 
 const router = useRouter()
@@ -40,6 +43,39 @@ const memoryCards = computed(() =>
     tape: TAPE_COLORS[index % TAPE_COLORS.length],
   })),
 )
+
+const exportRoot = ref<HTMLElement | null>(null)
+// Populated only when the user exports — photos are inlined as data URLs so
+// html-to-image can rasterise them reliably.
+const exportMemories = ref<ExportMemory[]>([])
+const { exporting, error: exportError, exportPdf } = useScrapbookPdf()
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function saveKeepsake() {
+  if (exporting.value) return
+  exportMemories.value = await Promise.all(
+    MEMORY_PROMPTS.map(async (prompt) => {
+      const wish = WISH_NOTES.find((entry) => entry.id === prompt.id)
+      const blob = memoriesStore.records[prompt.id]?.photoBlob ?? null
+      return {
+        id: prompt.id,
+        url: blob ? await blobToDataUrl(blob) : null,
+        title: wish?.title ?? '',
+        lines: wish?.lines ?? [],
+      }
+    }),
+  )
+  await nextTick()
+  await exportPdf(exportRoot.value)
+}
 
 // Module-level so a celebration only plays once per app session, not on every revisit.
 let hasCelebrated = false
@@ -120,10 +156,38 @@ function viewWish(id: MemoryId) {
         </div>
         <p class="mt-1 font-hand text-xl text-ink/70">{{ SCRAPBOOK_CLOSING.signature }}</p>
 
+        <div class="relative mt-6">
+          <Doodle
+            v-if="!exporting"
+            name="burst"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-soft-yellow/50"
+            width="150"
+            height="150"
+          />
+          <StickerButton
+            variant="primary"
+            tone="soft-yellow"
+            size="sm"
+            class="relative -rotate-2"
+            :disabled="exporting"
+            @click="saveKeepsake"
+          >
+            {{ exporting ? 'Preparing…' : 'Save as keepsake' }}
+          </StickerButton>
+        </div>
+        <p v-if="exportError" class="mt-2 font-hand text-sm text-ink/55">
+          Couldn't make the PDF just now — try once more?
+        </p>
+
         <span class="mt-4 -rotate-1 border border-dashed border-ink/30 bg-cream px-3 py-1.5 text-[10px] text-ink/50 shadow-craft-soft">
           tap a photo to revisit its wish
         </span>
       </div>
+    </div>
+
+    <!-- Off-screen print sheet the PDF export rasterises. -->
+    <div ref="exportRoot" aria-hidden="true" class="pointer-events-none fixed top-0 left-[-10000px]">
+      <ScrapbookExport :memories="exportMemories" :closing="SCRAPBOOK_CLOSING" />
     </div>
   </CraftScreen>
 </template>

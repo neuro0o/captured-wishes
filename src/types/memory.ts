@@ -15,3 +15,12 @@ export interface WishNote {
   /** Body paragraphs, rendered one <p> per entry. */
   lines: string[]
 }
+
+/** One memory flattened for the PDF keepsake export (photo + its wish). */
+export interface ExportMemory {
+  id: MemoryId
+  /** Photo as a data URL, or null if somehow missing. */
+  url: string | null
+  title: string
+  lines: string[]
+}
