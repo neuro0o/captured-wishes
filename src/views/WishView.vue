@@ -11,6 +11,7 @@ import MarkerText from '@/components/ui/MarkerText.vue'
 import PhotoCorners from '@/components/ui/PhotoCorners.vue'
 import StickerButton from '@/components/ui/StickerButton.vue'
 import WashiTape from '@/components/ui/WashiTape.vue'
+import { playSfx } from '@/composables/useAudio'
 import { MEMORY_PROMPTS, WISH_NOTES } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
 import type { MemoryId } from '@/types/memory'
@@ -44,6 +45,7 @@ onMounted(async () => {
 async function reveal() {
   if (revealed.value) return
   revealed.value = true
+  playSfx('note-unfold')
   await memoriesStore.markWishUnlocked(memoryId.value)
 }
 
@@ -69,6 +71,7 @@ function goNext() {
 
         <button
           type="button"
+          :disabled="revealed"
           class="relative z-10 border-0 bg-transparent p-0 transition"
           :class="revealed ? '' : 'cursor-pointer touch-manipulation active:scale-95'"
           @click="reveal"
@@ -105,14 +108,8 @@ function goNext() {
         :open="revealed"
       />
 
-      <div v-if="revealed" class="relative mt-2">
-        <Doodle
-          name="burst"
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-dusty-pink/50"
-          width="150"
-          height="150"
-        />
-        <StickerButton variant="primary" tone="dusty-pink" size="md" class="relative -rotate-2" @click="goNext">
+      <div v-if="revealed" class="mt-2">
+        <StickerButton variant="primary" tone="dusty-pink" size="md" class="-rotate-2" @click="goNext">
           {{ nextTarget.name === 'scrapbook' ? 'See the scrapbook' : 'Next puzzle →' }}
         </StickerButton>
       </div>

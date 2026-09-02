@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useObjectUrl } from '@vueuse/core'
+import confetti from 'canvas-confetti'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -11,6 +12,7 @@ import MarkerText from '@/components/ui/MarkerText.vue'
 import PhotoCorners from '@/components/ui/PhotoCorners.vue'
 import ProgressFilmstrip from '@/components/ui/ProgressFilmstrip.vue'
 import WashiTape from '@/components/ui/WashiTape.vue'
+import { playSfx } from '@/composables/useAudio'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { MEMORY_PROMPTS } from '@/content/memories.config'
 import { useMemoriesStore } from '@/stores/memories'
@@ -43,11 +45,23 @@ onMounted(async () => {
     return
   }
   ready.value = true
+  playSfx('puzzle-start')
 })
 
 async function handleSolved() {
   if (justSolved.value) return
   justSolved.value = true
+  playSfx('puzzle-finished')
+  if (!reducedMotion.value) {
+    confetti({
+      particleCount: 55,
+      spread: 70,
+      startVelocity: 32,
+      origin: { y: 0.5 },
+      colors: ['#e8b9be', '#a9bfa0', '#c6b8d9', '#edd8a0', '#aacbdd'],
+      disableForReducedMotion: true,
+    })
+  }
   await memoriesStore.markPuzzleSolved(memoryId.value)
   window.setTimeout(
     () => {
@@ -91,7 +105,7 @@ async function handleSolved() {
 
       <div
         v-if="justSolved"
-        class="relative mt-4 -rotate-3 rounded-2xl border-[2.5px] border-ink bg-soft-yellow px-7 py-3 shadow-craft"
+        class="badge-pop relative mt-4 -rotate-3 rounded-2xl border-[2.5px] border-ink bg-soft-yellow px-7 py-3 shadow-craft"
       >
         <span class="font-heading text-2xl text-ink">You found it!</span>
         <Doodle name="star" class="absolute -top-3.5 -right-3 text-ink" width="18" height="18" />

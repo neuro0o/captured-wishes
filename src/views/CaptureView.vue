@@ -12,6 +12,7 @@ import ProgressFilmstrip from '@/components/ui/ProgressFilmstrip.vue'
 import PromptIcon from '@/components/ui/PromptIcon.vue'
 import StickerButton from '@/components/ui/StickerButton.vue'
 import WashiTape from '@/components/ui/WashiTape.vue'
+import { playSfx } from '@/composables/useAudio'
 import { useCamera } from '@/composables/useCamera'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { MEMORY_PROMPTS } from '@/content/memories.config'
@@ -41,6 +42,15 @@ const processedBlob = ref<Blob | null>(null)
 const developedUrl = useObjectUrl(processedBlob)
 const isDeveloped = ref(false)
 
+// Quick white flash when a shot is taken (shutter or gallery pick). Pairs with
+// the camera-shutter cue; skipped under reduced motion.
+const flash = ref(false)
+function snapFlash() {
+  if (reducedMotion.value) return
+  flash.value = true
+  window.setTimeout(() => (flash.value = false), 360)
+}
+
 const tint = computed(() =>
   phase.value === 'review' ? 'pink' : phase.value === 'developing' ? 'lavender' : 'sky',
 )
@@ -56,6 +66,8 @@ onMounted(async () => {
 })
 
 async function handleShutter() {
+  playSfx('camera-shutter')
+  snapFlash()
   const blob = await capture()
   if (!blob) return
   rawBlob.value = blob
@@ -66,6 +78,8 @@ async function handleShutter() {
 function handleFilePick(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  playSfx('camera-shutter')
+  snapFlash()
   stop()
   rawBlob.value = file
   phase.value = 'review'
@@ -101,6 +115,8 @@ async function confirmPhoto() {
 
 <template>
   <CraftScreen :tint="tint">
+    <div v-if="flash" class="camera-flash pointer-events-none absolute inset-0 z-50 bg-white" aria-hidden="true"></div>
+
     <div class="flex flex-1 flex-col items-center gap-4 pt-14 pb-10 sm:justify-center sm:pt-10">
       <!-- prompt -->
       <template v-if="prompt && phase !== 'developing'">
@@ -173,7 +189,7 @@ async function confirmPhoto() {
         </div>
 
         <label
-          class="mt-5 -rotate-1 cursor-pointer border border-dashed border-ink/30 bg-cream px-3.5 py-2 text-[11px] text-ink/60 shadow-craft-soft"
+          class="mt-5 inline-flex min-h-11 -rotate-1 cursor-pointer items-center border border-dashed border-ink/30 bg-cream px-4 py-2.5 text-[11px] text-ink/60 shadow-craft-soft"
         >
           choose from gallery instead
           <input type="file" accept="image/*" class="hidden" @change="handleFilePick" />

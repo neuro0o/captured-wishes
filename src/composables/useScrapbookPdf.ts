@@ -66,9 +66,11 @@ export function useScrapbookPdf() {
           await toJpeg(page, {
             width: PAGE_W,
             height: PAGE_H,
-            // ~150dpi for A4 — sharp on screen, fine for print, keeps the file small.
-            pixelRatio: 1.5,
-            quality: 0.92,
+            // pixelRatio 3 → ~288 DPI on A4 (near print quality; 1.5 was a soft
+            // ~144). Capped at 3: at 4 the canvas would be 4492px tall and hit
+            // iOS Safari's 4096px-per-dimension canvas limit.
+            pixelRatio: 3,
+            quality: 0.96,
             cacheBust: true,
             backgroundColor: '#faf3e7',
             fontEmbedCSS: fontCss,

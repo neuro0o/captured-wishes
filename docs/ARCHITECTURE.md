@@ -26,8 +26,9 @@ Because it's a gift for one specific person, the content (the 3 prompts, the wis
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite` plugin) | No separate config file; theme tokens (palette, fonts) live in a `@theme` block in `src/style.css` |
 | Storage | `idb` (tiny Promise wrapper around IndexedDB) | The schema is simple enough not to need a heavier library like Dexie |
 | Utilities | `@vueuse/core` | `useObjectUrl` (blob→URL lifecycle), `usePreferredReducedMotion`, etc. — avoids hand-rolling browser-quirk-prone code |
-| Animation | CSS transitions + `@vueuse/motion` (installed, lightly used so far) | Most of the "tactile" feel (developing photo, puzzle snap, note unfold) is done with plain CSS transitions; see §9 |
+| Animation | Hand-rolled CSS transitions + named keyframes, no library | Most of the "tactile" feel (developing photo, puzzle snap, note unfold, solve flourishes, camera flash) is plain CSS; JS only sets `setTimeout` delays and toggles trigger classes. See §9 |
 | Celebration | `canvas-confetti` | Small, battle-tested, used once on the final scrapbook screen |
+| Sound | Web Audio API (no lib) | `useAudio.ts` singleton — per-cue gain + gapless music loops; see §11 |
 
 ---
 
@@ -77,12 +78,14 @@ interface MemoryRecord {
 interface SettingsRecord {
   key: 'app'                // single row
   gridSize: GridSize | null // 3 | 5
-  soundEnabled: boolean
+  sfxEnabled: boolean        // interaction cues
+  musicEnabled: boolean      // background music bed
+  soundEnabled?: boolean     // legacy single flag — read into both above, never written
 }
 ```
 
 - **`memories`** store, keyed by `id` — one row per memory.
-- **`settings`** store, a single `'app'` row — the grid-size choice and sound preference.
+- **`settings`** store, a single `'app'` row — the grid-size choice and the two sound preferences (`sfxEnabled` / `musicEnabled`, both default **on**; a missing field — fresh install or a pre-split record — falls back to on).
 
 Photos are stored as raw `Blob`s, not base64 strings — base64 would bloat storage by ~33% and cost extra encode/decode time for no benefit, since IndexedDB natively supports storing binary blobs via structured clone.
 
@@ -92,7 +95,7 @@ A handful of plain async functions built on `idb`'s `openDB`: `loadAllMemories()
 
 ### The Pinia stores (`src/stores/`)
 
-`memoriesStore` and `settingsStore` are thin reactive wrappers: their `load()` action reads from IndexedDB into reactive state, and their mutation actions (`capturePhoto`, `markPuzzleSolved`, `markWishUnlocked`, `setGridSize`, `toggleSound`) update both the in-memory reactive state *and* persist back to IndexedDB in the same call. Both also expose a reset action — `memoriesStore.reset()` clears all captured progress and reseeds empty records, `settingsStore.resetGridSize()` clears just the grid-size choice (leaving the sound preference alone) — wired to a "Start fresh" link on the Welcome screen so a recipient (or you, while testing) can wipe progress without opening DevTools.
+`memoriesStore` and `settingsStore` are thin reactive wrappers: their `load()` action reads from IndexedDB into reactive state, and their mutation actions (`capturePhoto`, `markPuzzleSolved`, `markWishUnlocked`, `setGridSize`, `toggleSfx`, `toggleMusic`) update both the in-memory reactive state *and* persist back to IndexedDB in the same call (via a private `persist()` helper). Both also expose a reset action — `memoriesStore.reset()` clears all captured progress and reseeds empty records, `settingsStore.resetGridSize()` clears just the grid-size choice (leaving the sound preferences alone) — wired to a "Start fresh" link on the Welcome screen so a recipient (or you, while testing) can wipe progress without opening DevTools.
 
 **Components and views never touch `db.ts` directly** — they go through the stores. This keeps "what's the current state" (reactive, synchronous) and "how is it persisted" (async, IndexedDB) in one place instead of scattered across views.
 
@@ -139,8 +142,10 @@ A small state machine: `camera → review → developing`.
 ### Wish (`WishView.vue`)
 Shows the solved Polaroid; tapping it calls `markWishUnlocked` and unfolds a `WishNote` with that memory's text from `WISH_NOTES`. A "Next puzzle" / "See the scrapbook" button appears once revealed, navigating via `getResumeRoute(...)` — to the next memory's puzzle, or to the scrapbook once all three are done.
 
+`WishNote` is a card *frame* (the unfold `max-height`/opacity transition, washi tape, photo corner, fold creases) wrapping a separately-scrolling *body* — the body is capped and `overflow-y-auto` on mobile, `sm:max-h-none` above. Keeping the decorations on the frame rather than inside the scroll body is deliberate: as children of the scroll container they'd drift up through the text as you scroll (the photo corner in particular looked like a stray triangle mid-note). While the body has more below the fold, a mobile-only bottom fade + a bobbing "keep reading" chevron show; both are gated on a small `@scroll` check (`scrollHeight - scrollTop - clientHeight`), re-run on `open` and after the unfold settles.
+
 ### Scrapbook (`ScrapbookView.vue`)
-Guarded to only render once all memories are `done` (see §8). Shows all captured photos as a centered, wrapping row of Polaroids (each independently backed by its own `useObjectUrl`), fires a `canvas-confetti` burst once per app session, and shows the closing message from `SCRAPBOOK_CLOSING`. Tapping any photo jumps back to that memory's (already-unlocked) `/wish/:id` to reread it. A "Save as keepsake" button exports the whole thing as a PDF (see §12).
+Guarded to only render once all memories are `done` (see §8). Shows all captured photos as a centered, wrapping row of Polaroids (each independently backed by its own `useObjectUrl`), fires a `canvas-confetti` burst once per app session, and shows the closing message from `SCRAPBOOK_CLOSING`. Tapping any photo jumps back to that memory's (already-unlocked) `/wish/:id` to reread it. A "Save Scrapbook" button exports the whole thing as a PDF (see §13). A small house button top-left (mirroring `CraftScreen`'s sound toggles top-right) routes back to `/` — the only screen with an explicit "leave" affordance, since it's the end of the flow; Welcome then shows "Continue" (→ back here via `getResumeRoute`) and "start fresh".
 
 ---
 
@@ -203,6 +208,8 @@ Every view's `onMounted` guards itself against being visited "out of order" — 
 
 **The rotation-wrap bug** (worth understanding if you touch this code): rotation is stored as an **unbounded, ever-incrementing** step count (`rotationSteps`), not a wrapped `0/90/180/270` value. The reason: `transform: rotate()` transitions interpolate the *shortest numeric path* between two values. If you wrap the stored value back to `0deg` after `270deg`, the browser animates *backwards* through 180°/90° instead of continuing forward — it looks like the piece "resets." Storing an ever-growing step count and computing the actual CSS value as `steps * 90deg` means the transform passed to CSS always increases, so every rotation keeps spinning the same direction forever. The *logical* solved-check still normalizes via `rotationDegrees(steps) = ((steps % 4) + 4) % 4 * 90`.
 
+**Solve feedback**: after every drop/rotate, `onSettleChanged()` diffs a `Set` of pieces that are home + upright against the previous state. Newly-settled pieces (but never the final one — the whole-board celebration covers that) fire the `puzzle-solved-snap` cue and, unless reduced motion is set, get the `.piece-snap` class for ~0.6s: a springy scale "boing" (1 → 1.14 → 0.96 → 1) on the cell wrapper, plus a bright *inset* soft-yellow ring + brightness flash on the image (`.piece-snap > div`). The ring is `inset` deliberately — an outward glow is clipped by the board's `overflow-hidden`; the child keyframe also avoids `transform` so the piece's inline rotate survives. When that drop *solves* the board, `PuzzleBoard` adds `.board-solve-pulse` (a one-shot ring that rings outward to the resting halo) and emits `solved`; `PuzzleView` then plays `puzzle-finished`, fires a small pastel `canvas-confetti` burst, and springs the "You found it!" badge in with `.badge-pop`. All classes are neutralised by the reduced-motion kill-switch, and the JS paths that add them also check `useReducedMotion()`.
+
 ---
 
 ## 10. Visual design system — "Craft Table"
@@ -214,26 +221,55 @@ The look is a maximalist handmade scrapbook: tinted craft paper, washi tape, han
 - **Fonts**: `font-heading` (Patrick Hand / Caveat / Kalam) for headings, `font-hand` (Caveat) for handwritten accents and the wish letters, `font-body` (Inter / Nunito) for everything else — all loaded via Google Fonts `<link>` tags in `index.html`.
 - **Textures / effects** (utility classes, also in `style.css`): `paper-dots` (dot grid), `paper-ruled` (faint notebook rules), `torn-bottom` (jagged clip-path for banners), `marker-swipe` (the highlighter block behind a heading, drawn by `MarkerText`).
 
-**`CraftScreen` is the layout primitive.** Every view wraps its content in `<CraftScreen tint="…">`, which renders: on mobile, a full-bleed tinted-paper screen with the dot/rule textures, four washi-tape strips along the edges, and a persistent `SoundToggle` top-right. On `sm`+ the same thing becomes a **bounded "page" panel** (`max-w-md`, rounded, drop-shadowed) centred on a `desk-surface` background — reading as an actual scrapbook page lying on a desk instead of a phone-width column stranded in empty space. The panel is `overflow-hidden`, which also keeps decorative bleed (washi ends, banner corners, confetti) from expanding the document's scrollable area. Views add `sm:justify-center` so short screens centre vertically on the page.
+**`CraftScreen` is the layout primitive.** Every view wraps its content in `<CraftScreen tint="…">`, which renders: on mobile, a full-bleed tinted-paper screen with the dot/rule textures, four washi-tape strips along the edges, and the persistent `SoundToggle` (two buttons — SFX and music) top-right. On `sm`+ the same thing becomes a **bounded "page" panel** (`max-w-md`, rounded, drop-shadowed) centred on a `desk-surface` background — reading as an actual scrapbook page lying on a desk instead of a phone-width column stranded in empty space. The panel is `overflow-hidden`, which also keeps decorative bleed (washi ends, banner corners, confetti) from expanding the document's scrollable area. Views add `sm:justify-center` so short screens centre vertically on the page.
 
 The `components/ui/` primitives compose on top: `StickerButton` (chunky ink-bordered button), `MarkerText` (highlighter-swipe heading), `Doodle` (the SVG doodle set by `name`), `PhotoCorners` / `WashiTape` / `PromptIcon` (Polaroid decoration + the drawn smile/letter/sprout icons that replace the emoji prompts), `ProgressFilmstrip` ("memory N of 3"), `ConfettiBits` (static paper scatter — the animated burst is still `canvas-confetti`), `GridSizeToggle`.
 
-**Reduced motion**: `style.css` carries a global `prefers-reduced-motion` CSS kill-switch that zeroes out all CSS transition/animation durations site-wide. JS-driven effects that aren't pure CSS (the confetti burst, the `setTimeout` delays gating auto-navigation after the developing/solved animations) additionally check `useReducedMotion()` explicitly, since the CSS rule alone doesn't reach them. *A full audit of the redesigned views against this is still pending (Phase 8).*
+**Reduced motion**: `style.css` carries a global `prefers-reduced-motion` CSS kill-switch that zeroes out all CSS transition/animation durations site-wide. JS-driven effects that aren't pure CSS (the confetti bursts, the `setTimeout` delays gating auto-navigation, the puzzle solve flourishes) additionally check `useReducedMotion()` explicitly, since the CSS rule alone doesn't reach them. Audited call sites: `CaptureView`, `PuzzleView`, `PuzzleBoard`, `ScrapbookView` — all branch on `useReducedMotion()` (and `canvas-confetti` also gets `disableForReducedMotion: true`).
 
 ---
 
-## 11. What's not built yet
+## 11. Sound
 
-See [`ROADMAP.md`](./ROADMAP.md) for the full list. In short: **Phase 8 (polish)** — a reduced-motion audit across the redesigned views, tablet/landscape/short-viewport QA, touch-target sizing on the smaller secondary controls, and a performance pass. The sound toggle is wired (`SoundToggle` → `settingsStore.soundEnabled`) but nothing plays audio yet — **SFX / background music** is blocked on audio assets the user is sourcing. Everything from "PWA install" through "true jigsaw shapes" is explicitly out of scope for the MVP (see the Product Vision doc's "Future Ideas").
+`src/composables/useAudio.ts` is a **module-level singleton**, not a `useX()` composable — the background music has to persist across route changes, so its state can't live inside a view. It exports plain functions (`unlockAudio`, `setSfxEnabled`, `setMusicEnabled`, `playSfx`, `startMusic`, `stopMusic`).
+
+**SFX and music switch independently.** Two internal flags (`sfxEnabled`, `musicEnabled`); `playSfx` gates on the first, `startMusic` on the second. The recipient can silence the music but keep the interaction cues, or the reverse. **Both default on** — but nothing is audible until the first gesture unlocks the `AudioContext` (see *Autoplay policy* below), so this isn't an autoplay violation. `App.vue`'s pref watchers are `{ immediate: true }` because `store.load()` usually leaves an already-on value unchanged and a plain watcher would never fire on startup.
+
+**Web Audio, not `<audio>` elements.** One `AudioContext` with a master `GainNode`; each played sound gets its own `GainNode` so per-cue levels are set in code (`SFX_GAIN` / `MUSIC_GAIN` — all deliberately low, per the product spec's "very subtle") instead of by re-exporting files. Music beds are `AudioBufferSourceNode` with `loop = true`, which is sample-accurate gapless — `<audio loop>` clicks at the seam in several browsers. Files are `fetch` + `decodeAudioData`, cached in a `Map`, preloaded when SFX are switched on; a missing or undecodable file resolves to `null` and is skipped, never throws.
+
+**Files** live in `public/sfx/` (copied verbatim, no content hashing), referenced as `` `${import.meta.env.BASE_URL}sfx/${name}.mp3` `` → a relative `./sfx/...` that resolves against `index.html` on both root and subpath (GitHub Pages) deploys, unaffected by the hash route.
+
+**Cues** (SFX gated on `settingsStore.sfxEnabled`, music on `settingsStore.musicEnabled`; neither gated on reduced-motion — that's about vestibular motion, not audio):
+
+| Sound | Trigger |
+|---|---|
+| `camera-shutter` | `CaptureView` shutter tap **and** the "choose from gallery" file pick. Pairs with `snapFlash()` — a ~0.34s white `.camera-flash` overlay across the panel (skipped under reduced motion). |
+| `puzzle-start` | `PuzzleView` mount (once it's the real resume target) |
+| `puzzle-rotate` | tap-to-spin a piece (`PuzzleBoard.onPointerUp`, tap branch) |
+| `puzzle-solved-snap` | a piece reaches home + 0° — `PuzzleBoard` tracks settled ids in a `Set` and plays only on the transition in; suppressed on the final piece so it doesn't stack with `puzzle-finished`. Pairs with the `.piece-snap` scale-pop/glow. |
+| `puzzle-finished` | `PuzzleView.handleSolved` (whole puzzle solved). Pairs with the `.board-solve-pulse` ring, a pastel `canvas-confetti` burst, and the `.badge-pop` "You found it!" spring. |
+| `note-unfold` | `WishView.reveal` |
+| `main-theme` (loop) | every screen **except** the scrapbook |
+| `all-complete` (loop) | the scrapbook screen (replaces `main-theme`, crossfaded over `MUSIC_FADE`) |
+
+**Orchestration** is in `App.vue`: watchers on `settingsStore.sfxEnabled`, `settingsStore.musicEnabled` and `route.name` call `setSfxEnabled()` / `setMusicEnabled()` / `startMusic(musicForRoute(route.name))`. `startMusic` is idempotent per bed and uses a monotonic `musicToken` so a slow buffer load that resolves after a newer request bails out.
+
+**Autoplay policy**: since music defaults on, the common first-load case is `musicEnabled === true` with no gesture yet, so the `AudioContext` is created `suspended` and can't play. `startMusic` handles this by arming a one-shot `pointerdown`/`keydown`/`touchstart` window listener that resumes the context and starts the pending bed on the first interaction anywhere on the page. Each `SoundToggle` button also calls `unlockAudio()` synchronously inside its click, so toggling sound off-then-on always works immediately.
 
 ---
 
-## 12. PDF keepsake export
+## 12. What's not built yet
 
-`ScrapbookView`'s "Save as keepsake" button (`useScrapbookPdf` composable) produces a 4-page A4 PDF: a cover (title, the three photos with washi tape + captions, closing message) and one page per memory with its photo as a Polaroid and the full handwritten wish letter (font size auto-scaled down for longer letters so each fits one page).
+See [`ROADMAP.md`](./ROADMAP.md) for the full list. All MVP phases (0–8) plus the Craft Table redesign, PDF export, and SFX + music are **done**. The one code follow-up worth doing eventually: real embedded-font text in the PDF instead of a full-page raster (§13). Asset follow-up (not code): re-encode `main-theme.mp3` (~3.6 MB) at a lower bitrate and confirm the two music loops have no trailing silence at the seam. Everything from "PWA install" through "true jigsaw shapes" is explicitly out of scope for the MVP (see the Product Vision doc's "Future Ideas") — the notable one is **MP4 export** (would need `MediaRecorder` over a canvas/DOM capture + audio; a real project on its own).
+
+---
+
+## 13. PDF keepsake export
+
+`ScrapbookView`'s "Save Scrapbook" button (`useScrapbookPdf` composable) produces a 4-page A4 PDF: a cover (title, the three photos with washi tape + captions, closing message) and one page per memory with its photo as a Polaroid and the full handwritten wish letter (font size auto-scaled down for longer letters so each fits one page).
 
 - **`ScrapbookExport.vue`** is a hidden, print-styled sheet — one `.export-page` div (794×1123, A4 at 96dpi) per PDF page — rendered off-screen (`position: fixed; left: -10000px`) inside `ScrapbookView`.
-- **`useScrapbookPdf.ts`** rasterises each `.export-page` with `html-to-image` (`toJpeg`, ~150dpi) and assembles the images into a PDF with `jspdf`. Both libraries — and jspdf's transitive `html2canvas` / `dompurify` — are `import()`-ed inside the export call, so they stay out of the initial bundle entirely.
+- **`useScrapbookPdf.ts`** rasterises each `.export-page` with `html-to-image` (`toJpeg` at `pixelRatio: 3` → the 794×1123 sheet becomes a 2382×3369 image, ~288 DPI on A4) and assembles the images into a PDF with `jspdf`. `pixelRatio` is capped at 3 deliberately — 4 would make the canvas 4492px tall and hit iOS Safari's 4096px-per-dimension limit. Both libraries — and jspdf's transitive `html2canvas` / `dompurify` — are `import()`-ed inside the export call, so they stay out of the initial bundle entirely. The whole page (handwriting included) is a raster, not vector text, so quality is a function of `pixelRatio`; a truly crisp export would need real embedded-font text via `jsPDF.addFont`/`doc.text`, a much larger rewrite.
 - **Fonts**: `html-to-image` renders into an SVG `<foreignObject>` drawn onto a canvas, where external font URLs never load and the browser's own font cache can't be read cross-origin. So the composable fetches the Google Fonts CSS itself, re-fetches each `woff2`, and rewrites the CSS with `base64` `data:` URIs before handing it to `toJpeg` as `fontEmbedCSS`. Without this the handwriting renders as a system fallback (and the wider fallback metrics cause text overlap).
 - **Photos** are converted to `data:` URLs (via `FileReader`) before the sheet renders — blob URLs failed to load inside html-to-image's cloned render.
-- Output is JPEG-per-page, ~450 KB for a typical set. `jspdf`'s `save()` triggers a normal browser download — fine on the real static site (this isn't sandboxed like a preview).
+- Output is JPEG-per-page at `quality: 0.96`, ~1.4 MB for a typical 4-page set. `jspdf`'s `save()` triggers a normal browser download — fine on the real static site (this isn't sandboxed like a preview).

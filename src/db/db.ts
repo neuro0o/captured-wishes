@@ -54,7 +54,14 @@ export async function saveMemory(record: MemoryRecord): Promise<void> {
 export async function loadSettings(): Promise<SettingsRecord> {
   const db = await getDB()
   const record = await db.get('settings', SETTINGS_KEY)
-  return record ?? { key: SETTINGS_KEY, gridSize: null, soundEnabled: false }
+  // Sound defaults on; a field is only absent on a fresh install or a pre-split
+  // record (which carried a single `soundEnabled`) — either way, fall back to on.
+  return {
+    key: SETTINGS_KEY,
+    gridSize: record?.gridSize ?? null,
+    sfxEnabled: record?.sfxEnabled ?? true,
+    musicEnabled: record?.musicEnabled ?? true,
+  }
 }
 
 export async function saveSettings(record: SettingsRecord): Promise<void> {

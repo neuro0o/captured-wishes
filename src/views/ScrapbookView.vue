@@ -38,6 +38,7 @@ const photoUrls = new Map(
 const memoryCards = computed(() =>
   MEMORY_PROMPTS.map((prompt, index) => ({
     id: prompt.id,
+    label: prompt.prompt,
     photoUrl: photoUrls.get(prompt.id)?.value ?? null,
     rotation: CARD_ROTATIONS[index % CARD_ROTATIONS.length],
     tape: TAPE_COLORS[index % TAPE_COLORS.length],
@@ -102,11 +103,29 @@ onMounted(async () => {
 function viewWish(id: MemoryId) {
   router.push({ name: 'wish', params: { id } })
 }
+
+function goHome() {
+  router.push({ name: 'welcome' })
+}
 </script>
 
 <template>
   <CraftScreen tint="cream">
     <ConfettiBits />
+
+    <button
+      type="button"
+      aria-label="Back to the start"
+      title="Back to the start"
+      class="absolute top-4 left-4 z-30 grid h-11 w-11 rotate-3 place-items-center rounded-2xl border-[2.5px] border-ink bg-warm-white text-ink shadow-craft-soft transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+      @click="goHome"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 11.5 12 5l8 6.5" />
+        <path d="M6 10.5V19h12v-8.5" />
+        <path d="M10 19v-4.5h4V19" />
+      </svg>
+    </button>
 
     <!-- torn banner -->
     <div class="torn-bottom relative -mx-7 min-h-[124px] bg-soft-yellow">
@@ -127,6 +146,7 @@ function viewWish(id: MemoryId) {
           v-for="card in memoryCards"
           :key="card.id"
           type="button"
+          :aria-label="`Revisit the wish for “${card.label}”`"
           class="relative cursor-pointer touch-manipulation border-0 bg-transparent p-0 transition active:scale-95"
           @click="viewWish(card.id)"
         >
@@ -156,23 +176,16 @@ function viewWish(id: MemoryId) {
         </div>
         <p class="mt-1 font-hand text-xl text-ink/70">{{ SCRAPBOOK_CLOSING.signature }}</p>
 
-        <div class="relative mt-6">
-          <Doodle
-            v-if="!exporting"
-            name="burst"
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-soft-yellow/50"
-            width="150"
-            height="150"
-          />
+        <div class="mt-6">
           <StickerButton
             variant="primary"
             tone="soft-yellow"
             size="sm"
-            class="relative -rotate-2"
+            class="-rotate-2"
             :disabled="exporting"
             @click="saveKeepsake"
           >
-            {{ exporting ? 'Preparing…' : 'Save as keepsake' }}
+            {{ exporting ? 'Preparing…' : 'Save Scrapbook' }}
           </StickerButton>
         </div>
         <p v-if="exportError" class="mt-2 font-hand text-sm text-ink/55">

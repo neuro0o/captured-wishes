@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 
+import { playSfx } from '@/composables/useAudio'
+import { useReducedMotion } from '@/composables/useReducedMotion'
 import { rotationDegrees, usePuzzle, type PuzzlePieceState } from '@/composables/usePuzzle'
 import type { GridSize } from '@/types/memory'
 
@@ -12,8 +14,16 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'solved'): void }>()
 
 const { piecesByPosition, isSolved, swap, rotate } = usePuzzle(props.gridSize)
+const reducedMotion = useReducedMotion()
 
 const boardRef = ref<HTMLDivElement | null>(null)
+
+// Piece ids currently playing their snap flourish, and the one-shot board ring
+// pulse on the final piece. Both are visual-only and skipped under reduced motion.
+const snapping = ref<Set<number>>(new Set())
+const solvePulse = ref(false)
+const flourishTimers: number[] = []
+onBeforeUnmount(() => flourishTimers.forEach((t) => window.clearTimeout(t)))
 
 interface DragState {
   pieceId: number
@@ -28,6 +38,34 @@ interface DragState {
 
 const drag = ref<DragState | null>(null)
 const DRAG_THRESHOLD = 6
+
+// Which pieces are currently home + upright, so we fire the "snap" cue only on
+// the transition into that state (and not again while it stays there).
+const settledPieces = new Set<number>()
+
+function onSettleChanged() {
+  const newlySettled: number[] = []
+  for (const piece of piecesByPosition.value) {
+    if (!piece) continue
+    const settled = piece.currentIndex === piece.id && rotationDegrees(piece.rotationSteps) === 0
+    if (settled && !settledPieces.has(piece.id)) {
+      settledPieces.add(piece.id)
+      newlySettled.push(piece.id)
+    } else if (!settled) {
+      settledPieces.delete(piece.id)
+    }
+  }
+  // The last piece landing fires `solved` → `puzzle-finished` + the board pulse,
+  // which stand in for the per-piece snap so the two don't stack.
+  if (!newlySettled.length || isSolved.value) return
+
+  playSfx('puzzle-solved-snap')
+  if (reducedMotion.value) return
+  for (const id of newlySettled) {
+    snapping.value.add(id)
+    flourishTimers.push(window.setTimeout(() => snapping.value.delete(id), 650))
+  }
+}
 
 function cellStyle(index: number) {
   const n = props.gridSize
@@ -98,6 +136,7 @@ function onPointerUp(event: PointerEvent) {
 
   if (!current.moved) {
     rotate(current.pieceId)
+    playSfx('puzzle-rotate')
   } else if (boardRef.value) {
     const rect = boardRef.value.getBoundingClientRect()
     const n = props.gridSize
@@ -107,7 +146,14 @@ function onPointerUp(event: PointerEvent) {
   }
   drag.value = null
 
-  if (isSolved.value) emit('solved')
+  onSettleChanged()
+  if (isSolved.value) {
+    if (!reducedMotion.value) {
+      solvePulse.value = true
+      flourishTimers.push(window.setTimeout(() => (solvePulse.value = false), 950))
+    }
+    emit('solved')
+  }
 }
 </script>
 
@@ -115,7 +161,12 @@ function onPointerUp(event: PointerEvent) {
   <div
     ref="boardRef"
     class="relative aspect-square w-full max-w-sm touch-none rounded-md bg-cream transition-shadow duration-500 select-none"
-    :class="isSolved ? 'shadow-[0_0_0_3px_rgba(237,216,160,0.9),0_18px_34px_-16px_rgba(74,63,53,0.5)] overflow-visible' : 'overflow-hidden'"
+    :class="[
+      isSolved
+        ? 'shadow-[0_0_0_3px_rgba(237,216,160,0.9),0_18px_34px_-16px_rgba(74,63,53,0.5)] overflow-visible'
+        : 'overflow-hidden',
+      solvePulse && 'board-solve-pulse',
+    ]"
     :data-solved="isSolved"
   >
     <div
@@ -127,6 +178,7 @@ function onPointerUp(event: PointerEvent) {
         isDraggingThis(piece)
           ? 'z-20 cursor-grabbing transition-none'
           : 'z-10 cursor-grab transition-all duration-300 ease-out',
+        snapping.has(piece.id) && 'piece-snap',
       ]"
       :style="cellStyle(piece.currentIndex)"
       :data-piece-id="piece.id"

@@ -40,7 +40,7 @@ const fillClass = computed(() =>
   <button
     :type="type"
     :disabled="disabled"
-    class="inline-flex items-center justify-center gap-2 border-[2.5px] border-ink font-heading text-ink transition active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-x-0 disabled:active:translate-y-0"
+    class="inline-flex min-h-11 items-center justify-center gap-2 border-[2.5px] border-ink font-heading text-ink transition active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-x-0 disabled:active:translate-y-0"
     :class="[sizeClass, fillClass]"
   >
     <slot />

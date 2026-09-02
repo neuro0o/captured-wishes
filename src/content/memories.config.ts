@@ -10,15 +10,15 @@ import type { MemoryPrompt, WishNote } from '@/types/memory'
  */
 
 export const MEMORY_PROMPTS: MemoryPrompt[] = [
-  { id: '1', emoji: '📷', prompt: 'Start with something that makes you smile.' },
-  { id: '2', emoji: '💌', prompt: "Capture something you're grateful for." },
-  { id: '3', emoji: '🌱', prompt: "Photograph something you're looking forward to." },
+  { id: '1', emoji: '', prompt: 'something that makes you smile.' },
+  { id: '2', emoji: '', prompt: "something you're grateful for." },
+  { id: '3', emoji: '', prompt: "something you look forward to." },
 ]
 
 export const WISH_NOTES: WishNote[] = [
   {
     id: '1',
-    title: 'The Little Things',
+    title: 'The Little Things...',
     lines: [
       "There are so many things about our friendship that I don't think I've ever properly put into words.",
       'Not just the big moments, but the little ones too.',
@@ -30,7 +30,7 @@ export const WISH_NOTES: WishNote[] = [
   },
   {
     id: '2',
-    title: 'What I Hope You Know',
+    title: 'I Hope That...',
     lines: [
       "I hope you know that you don't always have to have everything figured out.",
       "You don't have to know where you're going every step of the way. You don't have to be at your best all the time. And you certainly don't have to become someone else just because you think you're falling behind.",
@@ -43,7 +43,7 @@ export const WISH_NOTES: WishNote[] = [
   },
   {
     id: '3',
-    title: 'For Everything Ahead',
+    title: 'For Everything Ahead...',
     lines: [
       "For the year ahead, I don't wish for everything to suddenly become easy.",
       'Instead, I hope life becomes a little kinder to you.',
@@ -57,13 +57,13 @@ export const WISH_NOTES: WishNote[] = [
       'Stay curious. Stay hopeful. Keep finding reasons to laugh.',
       'And most importantly, keep being you.',
       'Happy Birthday.',
-      "Here's to another year of becoming, discovering, and simply being here. ❤️",
+      "Here's to another year of becoming, discovering, and simply being here.",
     ],
   },
 ]
 
 // TODO: replace with your own closing message before deploying.
 export const SCRAPBOOK_CLOSING = {
-  heading: 'Happy Birthday ❤️',
+  heading: 'Happy Birthday',
   signature: 'Love, Neuro',
 }

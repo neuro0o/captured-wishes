@@ -83,19 +83,12 @@ async function startFresh() {
 
       <Doodle name="arrow-down" class="text-ink/50" width="38" height="42" />
 
-      <div class="relative">
-        <Doodle
-          v-if="settingsStore.gridSize"
-          name="burst"
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-soft-yellow/60"
-          width="170"
-          height="170"
-        />
+      <div>
         <StickerButton
           variant="primary"
           tone="lavender"
           size="lg"
-          class="relative -rotate-2"
+          class="-rotate-2"
           :disabled="!settingsStore.gridSize"
           @click="begin"
         >
@@ -107,7 +100,7 @@ async function startFresh() {
         <Doodle name="star" class="text-ink/70" width="15" height="15" />
         <button
           type="button"
-          class="-rotate-2 border border-dashed border-ink/30 bg-cream px-2.5 py-1.5 text-[10px] text-ink/50 shadow-craft-soft transition hover:text-ink/70"
+          class="inline-flex min-h-11 -rotate-2 items-center border border-dashed border-ink/30 bg-cream px-3.5 py-2 text-[10px] text-ink/50 shadow-craft-soft transition hover:text-ink/70"
           @click="startFresh"
         >
           start fresh
