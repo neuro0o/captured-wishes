@@ -6,7 +6,7 @@ A reading guide to how Captured Wishes actually works — the concept, the stack
 
 ## 1. What this is
 
-Captured Wishes is a **personalized, one-off birthday gift**, not a general product. On the recipient's birthday, they open a link on their phone and capture 3 photos back to back, guided by prompts ("Start with something that makes you smile," "Capture something you're grateful for," "Photograph something you're looking forward to"). Once all 3 are captured, each becomes a Polaroid puzzle to solve, one at a time; solving each reveals a hand-written note. After all 3 are done, everything comes together on a final scrapbook page with confetti, and the recipient can export the whole thing as a keepsake PDF.
+Captured Wishes is a **personalized, one-off birthday gift**, not a general product. On the recipient's birthday, they open a link on their phone and capture 3 photos back to back, guided by prompts ("something that makes you smile," "something you're grateful for," "something you're looking forward to"). Once all 3 are captured, each becomes a Polaroid puzzle to solve, one at a time; solving each reveals a hand-written note. After all 3 are done, everything comes together on a final scrapbook page with confetti, and the recipient can export the whole thing as a keepsake PDF.
 
 The whole thing is **100% client-side** — no backend, no accounts, no server, no cloud storage. It's built to ship as a static site on GitHub Pages. Photos and progress live only in the recipient's own browser, via IndexedDB.
 
