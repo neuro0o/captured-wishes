@@ -13,7 +13,10 @@ export interface MemoryRecord {
 export interface SettingsRecord {
   key: 'app'
   gridSize: GridSize | null
-  soundEnabled: boolean
+  sfxEnabled: boolean
+  musicEnabled: boolean
+  /** @deprecated Pre-split single flag. No longer read — `loadSettings` just falls back to on. */
+  soundEnabled?: boolean
 }
 
 export interface CapturedWishesSchema extends DBSchema {

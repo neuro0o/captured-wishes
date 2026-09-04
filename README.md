@@ -4,7 +4,7 @@
 
 A mobile-first, interactive digital birthday scrapbook. The recipient captures photos with their device camera, each photo becomes a Polaroid and then a puzzle, and solving the puzzle reveals a hidden handwritten wish. 100% client-side — no backend, no accounts, no server. Photos and progress are stored locally in the browser via IndexedDB.
 
-See [`Captured_Wishes_Product_Vision.md`](./Captured_Wishes_Product_Vision.md) for the full product/design spec, [`docs/ROADMAP.md`](./docs/ROADMAP.md) for development phases, and [`docs/CHANGELOG.md`](./docs/CHANGELOG.md) for what's shipped so far.
+See [`Captured_Wishes_Product_Vision.md`](./Captured_Wishes_Product_Vision.md) for the full product/design spec, [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for how the app actually works (data flow, puzzle engine, resume logic, design decisions), [`docs/ROADMAP.md`](./docs/ROADMAP.md) for development phases, and [`docs/CHANGELOG.md`](./docs/CHANGELOG.md) for what's shipped so far.
 
 ## Development
 

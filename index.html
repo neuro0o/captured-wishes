@@ -9,8 +9,13 @@
     <title>Captured Wishes</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Only the three fonts actually rendered are requested. Kalam and Nunito sit
+      third/second in the CSS fallback stacks (after Patrick Hand and Inter, which
+      always load) so they'd never paint — no reason to download them.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@400..700&family=Kalam:wght@300;400;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@400..700&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>

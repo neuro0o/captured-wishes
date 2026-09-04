@@ -30,7 +30,7 @@ function emptyMemoryRecord(id: MemoryId): MemoryRecord {
   return { id, photoBlob: null, capturedAt: null, puzzleSolved: false, wishUnlocked: false }
 }
 
-/** Loads all 4 memory records, seeding any that don't exist yet. */
+/** Loads all memory records, seeding any that don't exist yet. */
 export async function loadAllMemories(): Promise<MemoryRecord[]> {
   const db = await getDB()
   const tx = db.transaction('memories', 'readwrite')
@@ -54,10 +54,22 @@ export async function saveMemory(record: MemoryRecord): Promise<void> {
 export async function loadSettings(): Promise<SettingsRecord> {
   const db = await getDB()
   const record = await db.get('settings', SETTINGS_KEY)
-  return record ?? { key: SETTINGS_KEY, gridSize: null, soundEnabled: false }
+  // Sound defaults on; a field is only absent on a fresh install or a pre-split
+  // record (which carried a single `soundEnabled`) — either way, fall back to on.
+  return {
+    key: SETTINGS_KEY,
+    gridSize: record?.gridSize ?? null,
+    sfxEnabled: record?.sfxEnabled ?? true,
+    musicEnabled: record?.musicEnabled ?? true,
+  }
 }
 
 export async function saveSettings(record: SettingsRecord): Promise<void> {
   const db = await getDB()
   await db.put('settings', record)
+}
+
+export async function clearAllMemories(): Promise<void> {
+  const db = await getDB()
+  await db.clear('memories')
 }

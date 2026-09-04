@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import { loadAllMemories, saveMemory } from '@/db/db'
+import { clearAllMemories, loadAllMemories, saveMemory } from '@/db/db'
 import type { MemoryRecord } from '@/db/schema'
 import type { MemoryId } from '@/types/memory'
 
@@ -32,6 +32,11 @@ export const useMemoriesStore = defineStore('memories', {
       const record: MemoryRecord = { ...this.records[id], wishUnlocked: true }
       this.records[id] = record
       await saveMemory(record)
+    },
+    /** Wipes all captured photos and progress, then reseeds fresh empty records. */
+    async reset() {
+      await clearAllMemories()
+      await this.load()
     },
   },
 })
